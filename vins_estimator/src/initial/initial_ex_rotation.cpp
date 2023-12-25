@@ -23,13 +23,14 @@ InitialEXRotation::InitialEXRotation(){
 当外参完全不知道的时候，可以在线对其进行初步估计,然后在后续优化时，会在optimize函数中再次优化。
 输入是新图像和上一阵图像的位姿 和二者之间的imu预积分值,输出旋转矩阵
 对应VIO课程第七讲中对外参矩阵的求解 */
+// https://blog.csdn.net/weixin_37835423/article/details/110672571
 bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> corres, Quaterniond delta_q_imu, Matrix3d &calib_ric_result)
 {
-    frame_count++;
+    frame_count++; // 总共用于外参标定的数据帧数
 
     // 计算前后两帧的旋转矩阵，加到Rc向量内，直到校准成功
-    Rc.push_back(solveRelativeR(corres));//相机的到的旋转
-    Rimu.push_back(delta_q_imu.toRotationMatrix());//imu得到的旋转FIXME:这里和第七讲的L和R写反了
+    Rc.push_back(solveRelativeR(corres)); //通过本质矩阵求解相邻两帧之间的旋转矩阵 q_c(k+1)_c(k)
+    Rimu.push_back(delta_q_imu.toRotationMatrix());//imu得到的旋转FIXME:这里和第七讲的L和R写反了 //从b_(k+1)到b_(k)时刻IMU姿态预积分结果 q_b(k+1)_b(k)
     Rc_g.push_back(ric.inverse() * delta_q_imu * ric);
 
     Eigen::MatrixXd A(frame_count * 4, 4);
@@ -37,18 +38,20 @@ bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> c
     int sum_ok = 0;
     for (int i = 1; i <= frame_count; i++)
     {
-        Quaterniond r1(Rc[i]);
-        Quaterniond r2(Rc_g[i]);
+        Quaterniond r1(Rc[i]); //对应公式(4)中的q_c(k+1)_c(k)
+        Quaterniond r2(Rc_g[i]); //对应公式(4)中的q_b(k+1)_b(k)
 
-        double angular_distance = 180 / M_PI * r1.angularDistance(r2);//角度误差
+        double angular_distance = 180 / M_PI * r1.angularDistance(r2);//角度误差 // 计算相机姿态增量和imu姿态增量之间的夹角
         ROS_DEBUG(
             "%d %f", i, angular_distance);
 
+        // 根据两姿态之间的夹角计算Huber核系数，降噪声影响
         double huber = angular_distance > 5.0 ? 5.0 / angular_distance : 1.0;
         //huber核函数,对应第七讲公式(8),其中的threshold等于5
         ++sum_ok;
         Matrix4d L, R;//L和R对应第七讲公式(6)中的左右四元数乘法left and right quaternion multiplication
 
+        // 计算左乘矩阵,对应公式(5)中的Q_(+)
         double w = Quaterniond(Rc[i]).w();
         Vector3d q = Quaterniond(Rc[i]).vec();
         L.block<3, 3>(0, 0) = w * Matrix3d::Identity() + Utility::skewSymmetric(q);
@@ -56,6 +59,7 @@ bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> c
         L.block<1, 3>(3, 0) = -q.transpose();
         L(3, 3) = w;
 
+        // 计算右乘矩阵,对应公式(5)中的Q_(-)
         Quaterniond R_ij(Rimu[i]);
         w = R_ij.w();
         q = R_ij.vec();
@@ -64,15 +68,17 @@ bool InitialEXRotation::CalibrationExRotation(vector<pair<Vector3d, Vector3d>> c
         R.block<1, 3>(3, 0) = -q.transpose();
         R(3, 3) = w;
 
+        // 对应公式(7)，其实一组数据就可以解算出外参信息，此处累积多组数据构成超定方程，提升结果的准确性
         A.block<4, 4>((i - 1) * 4, 0) = huber * (L - R);
     }
 
-    JacobiSVD<MatrixXd> svd(A, ComputeFullU | ComputeFullV);//对A进行SVD分解,
-    Matrix<double, 4, 1> x = svd.matrixV().col(3);//最小奇异值对应的奇异向量
+    JacobiSVD<MatrixXd> svd(A, ComputeFullU | ComputeFullV);//对A进行SVD分解求解齐次线性方程组
+    Matrix<double, 4, 1> x = svd.matrixV().col(3);//最小奇异值对应的奇异向量即为求解的结果
     Quaterniond estimated_R(x);
     ric = estimated_R.toRotationMatrix().inverse();
     //cout << svd.singularValues().transpose() << endl;
     //cout << ric << endl;
+    // 将SVD分解后的最小的三个奇异值作为外参旋转的协方差值(只有对角线上有值)
     Vector3d ric_cov;
     ric_cov = svd.singularValues().tail<3>();
     if (frame_count >= WINDOW_SIZE && ric_cov(1) > 0.25)

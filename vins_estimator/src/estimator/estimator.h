@@ -99,7 +99,7 @@ class Estimator
     queue<pair<double, Eigen::Vector3d>> accBuf;
     queue<pair<double, Eigen::Vector3d>> gyrBuf;
     queue<pair<double, map<int, vector<pair<int, Eigen::Matrix<double, 7, 1> > > > > > featureBuf;
-    double prevTime, curTime;//这两个是按照哪个传感器的时间算的？ IMU时间，因为已经通过dt把相机时间转换到了IMU书剑
+    double prevTime, curTime;//这两个是按照哪个传感器的时间算的？ IMU时间，因为已经通过dt把相机时间转换到了IMU时间
     bool openExEstimation;
 
     std::thread trackThread;

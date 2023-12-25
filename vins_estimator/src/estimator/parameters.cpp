@@ -8,6 +8,7 @@
  *******************************************************/
 
 #include "parameters.h"
+#include "opencv2/opencv.hpp"
 
 double INIT_DEPTH;
 double MIN_PARALLAX; //滑动窗口中,是删除最老帧,还是倒数第二针,是通过新帧和倒数第二帧的视差决定,也就是这个最小像素值,还需要除以焦距

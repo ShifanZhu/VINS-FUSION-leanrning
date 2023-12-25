@@ -1364,7 +1364,7 @@ void Estimator::optimization()
             }
         }
 
-        // 添加视觉的maeg信息
+        // 添加视觉的marg信息
         {
             int feature_index = -1;
 
@@ -1591,7 +1591,7 @@ void Estimator::slideWindow()
         }
     }
 
-    // marg掉倒数第二帧,也很简单,另倒数第二个等于新的一个就可以
+    // marg掉倒数第二帧,也很简单,令倒数第二个等于新的一个就可以
     else
     {
         if (frame_count == WINDOW_SIZE)
