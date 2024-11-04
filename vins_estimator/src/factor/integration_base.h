@@ -75,8 +75,8 @@ class IntegrationBase
                             Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v,
                             Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
     {
-        //ROS_INFO("midpoint integration");
         
+        //ROS_INFO("midpoint integration");
         // 更新预积分的值
         Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba);
         Vector3d un_gyr = 0.5 * (_gyr_0 + _gyr_1) - linearized_bg;// 本次时间间隔内的角速度
