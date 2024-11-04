@@ -1,0 +1,87 @@
+%YAML:1.0
+
+#common parameters
+#support: 1 imu 1 cam; 1 imu 2 cam: 2 cam; 
+imu: 1
+num_of_cam: 1
+
+imu_topic: "/imu_topic"
+image0_topic: "/rgb_topic"
+# image1_topic: "/recording/image"
+output_path: "/home/zh/data/cear/outdoor/downtown1_night_comb/pose"
+
+cam0_calib: "realsense_rgb.yaml"
+# cam1_calib: "cam1_mei.yaml"
+image_width: 640
+image_height: 480
+
+
+# Extrinsic parameter between IMU and Camera.
+estimate_extrinsic: 0   # 0  Have an accurate extrinsic parameters. We will trust the following imu^R_cam, imu^T_cam, don't change it.
+                        # 1  Have an initial guess about extrinsic parameters. We will optimize around your initial guess.
+
+body_T_cam0: !!opencv-matrix
+   rows: 4
+   cols: 4
+   dt: d
+   data: [-3.5726853401287784e-03, 0.002429220708312, 0.999990667359556, 0.006233925003759,
+      0.99997810503102, -0.005561383262505, 0.003586150411935, 0.016738335590475,
+      0.005570042910958, 0.999981584781919, -0.002409298448147, -0.01309606233905,
+      0, 0, 0, 1.]
+
+
+
+      #       data1: [0.000985307, 0.0019242, 0.999998, 0.00166182,
+      #    0.999993, -0.00359855, -0.000978378, 0.0255201,
+      #    0.00359666, 0.999992, -0.00192773, -0.0207922,
+      #    0, 0, 0, 1]
+      # data2 [0.000985307, 0.0019242, 0.999998, 0.00166182,
+      #    0.999993, -0.00359855, -0.000978378, 0.0175201,
+      #    0.00359666, 0.999992, -0.00192773, -0.0177922,
+      #    0, 0, 0, 1]
+
+      # data1_opt_fix_manual: [-3.5726853401287784e-03, 0.002429220708312, 0.999990667359556, 0.006233925003759,
+      # 0.99997810503102, -0.005561383262505, 0.003586150411935, 0.016738335590475,
+      # 0.005570042910958, 0.999981584781919, -0.002409298448147, -0.01309606233905,
+      # 0, 0, 0,1.]
+
+
+
+#Multiple thread support
+multiple_thread: 1
+
+#feature traker paprameters
+max_cnt: 250            # max feature number in feature tracking
+min_dist: 8            # min distance between two features 
+freq: 0                # frequence (Hz) of publish tracking result. At least 10Hz for good estimation. If set 0, the frequence will be same as raw image 
+F_threshold: 1.0        # ransac threshold (pixel)
+show_track: 1           # publish tracking image as topic
+flow_back: 1            # perform forward and backward optical flow to improve feature tracking accuracy
+
+#optimization parameters
+max_solver_time: 0.04  # max solver itration time (ms), to guarantee real time
+max_num_iterations: 8   # max solver itrations, to guarantee real time
+keyframe_parallax: 10.0 # keyframe selection threshold (pixel)
+
+#imu parameters       The more accurate parameters you provide, the better performance
+acc_n: 1.5336016728761148e-02          # accelerometer measurement noise standard deviation. 
+gyr_n: 6.6783448149032164e-04         # gyroscope measurement noise standard deviation.     
+acc_w: 1.3421852900125284e-04        # accelerometer bias random work noise standard deviation.  
+gyr_w: 2.6068719029534757e-06       # gyroscope bias random work noise standard deviation.     
+g_norm: 9.85007     # gravity magnitude 9.85007
+
+# acc_n: 0.0013860267737474954          # accelerometer measurement noise standard deviation. 
+# gyr_n: 5.6169965387912694e-05         # gyroscope measurement noise standard deviation.     
+# acc_w: 1.8138323678976462e-05        # accelerometer bias random work noise standard deviation.  
+# gyr_w: 5.541475128198737e-07       # gyroscope bias random work noise standard deviation.     
+# g_norm: 9.85     # gravity magnitude 9.85007
+
+#unsynchronization parameters
+estimate_td: 1                      # online estimate time offset between camera and imu
+# td: 0.0085                             # initial value of time offset. unit: s. readed image clock + td = real image clock (IMU clock)
+td: 0.002                             # initial value of time offset. unit: s. readed image clock + td = real image clock (IMU clock)
+
+#loop closure parameters
+load_previous_pose_graph: 0        # load and reuse previous pose graph; load from 'pose_graph_save_path'
+pose_graph_save_path: "~/output/pose_graph/" # save and load path
+save_image: 0                   # save image in pose graph for visualization prupose; you can close this function by setting 0 

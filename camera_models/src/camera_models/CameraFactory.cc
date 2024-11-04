@@ -103,7 +103,7 @@ CameraFactory::generateCameraFromYamlFile( const std::string& filename )
     }
 
     Camera::ModelType modelType = Camera::MEI;
-    if ( !fs["model_type"].isNone( ) )
+    if (!fs["model_type"].isNone())
     {
         std::string sModelType;
         fs["model_type"] >> sModelType;
@@ -184,6 +184,7 @@ CameraFactory::generateCameraFromYamlFile( const std::string& filename )
             return camera;
         }
     }
+    std::cout << "d" << std::endl;
 
     return CameraPtr( );
 }

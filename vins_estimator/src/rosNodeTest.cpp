@@ -66,9 +66,13 @@ cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
         ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::MONO8);
     }
     else
-        ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::MONO8);
-
+    {
+        ptr = cv_bridge::toCvCopy(img_msg, sensor_msgs::image_encodings::TYPE_8UC3);
+    }
     cv::Mat img = ptr->image.clone();
+    if (img.channels() >= 3) {
+        cv::cvtColor(img, img, cv::COLOR_BGR2GRAY);
+    }
     return img;
 }
 

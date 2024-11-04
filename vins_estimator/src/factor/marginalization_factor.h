@@ -36,11 +36,11 @@ struct ResidualBlockInfo
     _drop_set:
     另外会设置需要被边缘话的优化变量的位置_drop_set，这里对于不同损失函数又会有不同：
     对于先验损失，其待边缘化优化变量是根据是否等于para_Pose[0]或者para_SpeedBias[0]，也就是说和第一帧相关的优化变量都作为边缘化的对象。    
-    对于IMU，其输入的_drop_set是vector{0, 1}，也就是说其待边缘化变量是para_Pose[0], para_SpeedBias[0]，也是第一政相关的变量都作为边缘化的对象，
-    这里值得注意的是和后端优化不同，这里只添加了第一帧和第二帧的相关变量作为优化变量，因此边缘化构造的信息矩阵会比后端优化构造的信息矩阵要小对于视觉，
+    对于IMU，其输入的_drop_set是vector{0, 1}，也就是说其待边缘化变量是para_Pose[0], para_SpeedBias[0]，也是第一帧相关的变量都作为边缘化的对象，
+    这里值得注意的是和后端优化不同，这里只添加了第一帧和第二帧的相关变量作为优化变量，因此边缘化构造的信息矩阵会比后端优化构造的信息矩阵要小。对于视觉，
     其输入的_drop_set是vector{0, 3}，也就是说其待边缘化变量是para_Pose[imu_i]和para_Feature[feature_index]，从这里可以看出来在VINS-mono的边缘化操作中
     会不仅仅会边缘化第一帧相关的优化变量，还会边缘化掉以第一帧为起始观察帧的路标点。
-    原文链接：https://blog.csdn.net/weixin_44580210/article/details/95748091*/
+    原文链接：https://blog.csdn.net/weixin_44580210/article/details/95748091 */
 
 
     void Evaluate();
@@ -87,7 +87,7 @@ class MarginalizationInfo
     // 得到每次IMU和视觉观测(cost_function)对应的参数快(parameter_blocks),雅克比矩阵(jacobians),残差值(residuals)
     void preMarginalize();
 
-    // 多线程进行marg,这里边执行了舒尔布操作.pos为所有变量维度，ｍ为需要marg掉的变量，ｎ为需要保留的变量
+    // 多线程进行marg,这里边执行了舒尔补操作. pos为所有变量维度，m为需要marg掉的变量，n为需要保留的变量
     void marginalize();
     
     std::vector<double *> getParameterBlocks(std::unordered_map<long, double *> &addr_shift);
@@ -97,8 +97,8 @@ class MarginalizationInfo
 
     /*先说变量，这里有三个unordered_map相关的变量分别是：
     parameter_block_size、parameter_block_idx、parameter_block_data，
-    他们的key都同一是long类型的内存地址，而value分别是，各个优化变量的长度，
-    各个优化变量在id以各个优化变量对应的double指针类型的数据。*/
+    他们的key都统一是long类型的内存地址，而value分别是: 各个优化变量的长度，
+    各个优化变量的id，以及各个优化变量对应的double指针类型的数据。*/
     // 这几个变量参考崔华坤的博文:https://mp.weixin.qq.com/s/9twYJMOE8oydAzqND0UmFw
     std::unordered_map<long, int> parameter_block_size; // 需要marg掉的变量的大小,<优化变量内存地址,优化变量的长度>global size
     int sum_block_size;
@@ -107,13 +107,13 @@ class MarginalizationInfo
 
     /*对应的有三个vector相关的变量分别是：
     keep_block_size、keep_block_idx、keep_block_data，
-    他们是进行边缘化之后保留下来的各个优化变量的长度，各个优化变量在id以各个优化变量对应的double指针类型的数据*/
+    他们是进行边缘化之后保留下来的各个优化变量的长度，各个优化变量的id，以及各个优化变量对应的double指针类型的数据*/
     std::vector<int> keep_block_size; //global size
     std::vector<int> keep_block_idx;  //local size
     std::vector<double *> keep_block_data;
 
     Eigen::MatrixXd linearized_jacobians;//边缘化之后从信息矩阵恢复出来雅克比矩阵
-    Eigen::VectorXd linearized_residuals;//分别指的是边缘化之后从信息矩阵恢复出来残差向量
+    Eigen::VectorXd linearized_residuals;//边缘化之后从信息矩阵恢复出来残差向量
     const double eps = 1e-8;
     bool valid;
 

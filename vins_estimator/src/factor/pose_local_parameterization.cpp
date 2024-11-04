@@ -9,7 +9,7 @@
 
 #include "pose_local_parameterization.h"
 
-// 定义了四元数的假发
+// 定义了位移和四元数的加法
 bool PoseLocalParameterization::Plus(const double *x, const double *delta, double *x_plus_delta) const
 {
     Eigen::Map<const Eigen::Vector3d> _p(x);

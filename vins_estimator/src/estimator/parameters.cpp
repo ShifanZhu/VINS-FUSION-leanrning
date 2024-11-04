@@ -113,7 +113,7 @@ void readParameters(std::string config_file)
     MIN_PARALLAX = MIN_PARALLAX / FOCAL_LENGTH;
 
     fsSettings["output_path"] >> OUTPUT_FOLDER;
-    VINS_RESULT_PATH = OUTPUT_FOLDER + "/vio.csv"; //输出VIO的数据
+    VINS_RESULT_PATH = OUTPUT_FOLDER + "/VINS-Fusion.txt"; //输出VIO的数据
     std::cout << "result path " << VINS_RESULT_PATH << std::endl;
         //result path /home/kuan/2data/mynt_data/s1030/cali_test/1030/test8//vio.csv
     std::ofstream fout(VINS_RESULT_PATH, std::ios::out); //输出操作

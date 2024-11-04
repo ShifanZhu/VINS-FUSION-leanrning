@@ -185,7 +185,7 @@ void Estimator::inputImage(double t, const cv::Mat &_img, const cv::Mat &_img1)
         featureFrame = featureTracker.trackImage(t, _img, _img1);// 追踪双目
     printf("featureTracker time: %f\n", featureTrackerTime.toc());
 
-    if (SHOW_TRACK)//这个应该是展示轨迹 
+    if (SHOW_TRACK)//这个应该是展示轨迹
     {
         cv::Mat imgTrack = featureTracker.getTrackImage();
         pubTrackImage(imgTrack, t);
@@ -265,7 +265,7 @@ bool Estimator::getIMUInterval(double t0, double t1, vector<pair<double, Eigen::
             accBuf.pop();//.pop删除栈顶元素
             gyrBuf.pop();
         }
-        // 将队列里所有的acc和gyr输入到accvector个gyrvector中
+        // 将队列里所有的acc和gyr输入到accvector和gyrvector中
         while (accBuf.front().first < t1)
         {
             accVector.push_back(accBuf.front());
@@ -316,7 +316,7 @@ void Estimator::processMeasurements()
                     printf("wait for imu ... \n");
                     if (! MULTIPLE_THREAD)
                         return;
-                    std::chrono::milliseconds dura(5);//定义5ms
+                    std::chrono::milliseconds dura(3);//定义5ms
                     std::this_thread::sleep_for(dura);//这个线程休眠5ms
                 }
             }
@@ -363,13 +363,13 @@ void Estimator::processMeasurements()
             pubKeyframe(*this);
             pubTF(*this, header);
             mProcess.unlock();
+        } else {
+            std::chrono::milliseconds dura(1);
+            std::this_thread::sleep_for(dura);
         }
 
         if (! MULTIPLE_THREAD) // 不是多线程，需要break while循环
             break;
-
-        std::chrono::milliseconds dura(2);
-        std::this_thread::sleep_for(dura);
     }
 }
 
@@ -410,7 +410,7 @@ void Estimator::initFirstPose(Eigen::Vector3d p, Eigen::Matrix3d r)
 传进来的是一个imu数据 得到预积分值pre_integrations 还有一个tmp_pre_integration */
 void Estimator::processIMU(double t, double dt, const Vector3d &linear_acceleration, const Vector3d &angular_velocity)
 {
-    // 第一个imu处理
+    // 第一个imu处理 // only called once
     if (!first_imu)
     {
         first_imu = true;
@@ -457,9 +457,8 @@ void Estimator::processIMU(double t, double dt, const Vector3d &linear_accelerat
 }
 
 // 其中包含了检测关键帧,估计外部参数,初始化,状态估计,划窗等等
-void Estimator::processImage
-(const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header)
 // image 里边放的就是该图像的特征点 header 时间
+void Estimator::processImage (const map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> &image, const double header)
 {
     ROS_DEBUG("new image coming ------------------------------------------");//输入进来的其实只有特征点
     ROS_DEBUG("Adding feature points %lu", image.size());
@@ -483,8 +482,9 @@ void Estimator::processImage
 
     ImageFrame imageframe(image, header);
     imageframe.pre_integration = tmp_pre_integration;
+    // 键是图像帧的时间戳，值是ImageFrame对象，ImageFrame对象中保存了图像帧的位姿，相应的预积分和图像特征点信息
     all_image_frame.insert(make_pair(header, imageframe));
-    tmp_pre_integration = new IntegrationBase{acc_0, gyr_0, Bas[frame_count], Bgs[frame_count]};
+    tmp_pre_integration = new IntegrationBase{acc_0, gyr_0, Bas[frame_count], Bgs[frame_count]}; // 似乎只和初始化相关
 
     // 估计一个外部参,并把ESTIMATE_EXTRINSIC置1,输出ric和RIC
     if(ESTIMATE_EXTRINSIC == 2)
@@ -1163,7 +1163,7 @@ void Estimator::optimization()
     {
         // 对于四元数或者旋转矩阵这种使用过参数化表示旋转的方式，它们是不支持广义的加法
         // 所以我们在使用ceres对其进行迭代更新的时候就需要自定义其更新方式了，具体的做法是实现一个LocalParameterization
-        ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization();
+        ceres::LocalParameterization *local_parameterization = new PoseLocalParameterization(); // 位移和四元数的参数化
 
         // AddParameterBlock   向该问题添加具有适当大小和参数化的参数块。
         problem.AddParameterBlock(para_Pose[i], SIZE_POSE, local_parameterization); //因为有四元数,所以使用了 local_parameterization
@@ -1213,7 +1213,7 @@ void Estimator::optimization()
             LossFunction* loss_function,//核函数
             const std::vector<double*>& parameter_blocks); */
         problem.AddResidualBlock(marginalization_factor, NULL,
-                                 last_marginalization_parameter_blocks);
+                                 last_marginalization_parameter_blocks); // 是上一轮留下来的残差块
     }
 
     // 在问题中添加IMU约束
@@ -1224,7 +1224,8 @@ void Estimator::optimization()
             int j = i + 1;
             if (pre_integrations[j]->sum_dt > 10.0)
                 continue;
-            IMUFactor* imu_factor = new IMUFactor(pre_integrations[j]);
+            // 该继承的类说明残差的维度是15，输入的第一个待优化参数的维度是7，第二个待优化参数的维度是9，第三个待优化参数的维度是7，第四个待优化参数的维度是9
+            IMUFactor *imu_factor = new IMUFactor(pre_integrations[j]); // pre_integrations也可以看做是先验信息
             problem.AddResidualBlock(imu_factor, NULL, para_Pose[i], para_SpeedBias[i], para_Pose[j], para_SpeedBias[j]);
                 //这里添加的参数包括状态i和状态j
         }
@@ -1251,8 +1252,9 @@ void Estimator::optimization()
             if (imu_i != imu_j)//既,本次不是第一次观测到
             {
                 Vector3d pts_j = it_per_frame.point;
+                // 该继承的类说明残差的维度是2，输入的第一个待优化参数的维度是7，第二个待优化参数的维度是7，第三个待优化参数的维度是7，第四个待优化参数的维度是1，第五个待优化参数的维度是1
                 ProjectionTwoFrameOneCamFactor *f_td = new ProjectionTwoFrameOneCamFactor(pts_i, pts_j, it_per_id.feature_per_frame[0].velocity, it_per_frame.velocity,
-                    it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
+                                                                                          it_per_id.feature_per_frame[0].cur_td, it_per_frame.cur_td);
                 problem.AddResidualBlock(f_td, loss_function, para_Pose[imu_i], para_Pose[imu_j], para_Ex_Pose[0], para_Feature[feature_index], para_Td[0]);
                     /* 相关介绍:
                     1 只在视觉量测中用了核函数loss_function 用的是huber
@@ -1315,23 +1317,32 @@ void Estimator::optimization()
     // -----------------------------marginalization ------------------------------------
     TicToc t_whole_marginalization;
 
-    //如果需要marg掉最老的一帧
+    // 如果倒数第2帧是关键帧的话，那么就需要把滑窗中最老的那一帧边缘化掉
     if (marginalization_flag == MARGIN_OLD)
     {
+        // 一个用来边缘化操作的对象
         MarginalizationInfo *marginalization_info = new MarginalizationInfo();//先验信息
         vector2double();
+        // 关于边缘化有几点注意的地方
+        // 1、找到需要边缘化的参数块，这里是地图点，第0帧位姿，第0帧速度零偏
+        // 2、找到构造高斯牛顿下降时跟这些待边缘化相关的参数块有关的残差约束，那就是预积分约束，重投影约束，以及上一次边缘化约束
+        // 3、这些约束连接的参数块中，不需要被边缘化的参数块，就是被提供先验约束的部分，也就是滑窗中剩下的位姿和速度零偏
 
+        // https://blog.csdn.net/qq_42731705/article/details/129483332
         if (last_marginalization_info && last_marginalization_info->valid)
         {
-            vector<int> drop_set;//边缘话的优化变量的位置_drop_set
+            vector<int> drop_set; //边缘化的优化变量的位置 drop_set
+            // last_marginalization_parameter_blocks是上一次边缘化对哪些当前参数块有约束
             for (int i = 0; i < static_cast<int>(last_marginalization_parameter_blocks.size()); i++)
-            //last_marginalization_parameter_blocks 是上一轮留下来的残差块
             {
+                // 涉及到的待边缘化的上一次边缘化留下来的当前参数块只有位姿和速度零偏
                 if (last_marginalization_parameter_blocks[i] == para_Pose[0] ||
                     last_marginalization_parameter_blocks[i] == para_SpeedBias[0])
                         //需要marg掉的优化变量，也就是滑窗内第一个变量,para_Pose[0]和para_SpeedBias[0]
                     drop_set.push_back(i);
             }
+            // 处理方式和其他残差块相同
+            
             // 创建新的marg因子 construct new marginlization_factor
             MarginalizationFactor *marginalization_factor = new MarginalizationFactor(last_marginalization_info);
              
@@ -1352,14 +1363,17 @@ void Estimator::optimization()
         // 然后添加第0帧和第1帧之间的IMU预积分值以及第0帧和第1帧相关优化变量
         if(USE_IMU)
         {
+            // 判断预积分的约束时间是否小于10s，否则时间太久不准，就不能边缘化形成先验约束了，直接丢掉
             if (pre_integrations[1]->sum_dt < 10.0)
             {
+                // 跟构建ceres约束问题一样，这里也需要得到残差和雅可比
                 IMUFactor* imu_factor = new IMUFactor(pre_integrations[1]);
 
                 // 这一步添加IMU的marg信息
                 ResidualBlockInfo *residual_block_info = new ResidualBlockInfo(imu_factor, NULL,
                     vector<double *>{para_Pose[0], para_SpeedBias[0], para_Pose[1], para_SpeedBias[1]},//优化变量
-                    vector<int>{0, 1});//这里是0,1的原因是0和1是para_Pose[0], para_SpeedBias[0]是需要marg的变量
+                    vector<int>{0, 1});//这里是第0和1个参数块需要被边缘化，注意要被边缘化的参数放在前面方便进行舒尔补
+                                       //0,1的原因是0和1是para_Pose[0], para_SpeedBias[0]是需要marg的变量
                 marginalization_info->addResidualBlockInfo(residual_block_info);
             }
         }
@@ -1458,7 +1472,7 @@ void Estimator::optimization()
         last_marginalization_parameter_blocks = parameter_blocks;//优化变量的递归，这里面仅仅是指针
         
     }
-    else
+    else // MARGIN_SECOND_NEW
     {
         if (last_marginalization_info &&
             std::count(std::begin(last_marginalization_parameter_blocks), std::end(last_marginalization_parameter_blocks), para_Pose[WINDOW_SIZE - 1]))

@@ -136,7 +136,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
     cur_pts.clear();
 
     // --------------如果上一帧有特征点，就直接进行LK追踪
-    if (prev_pts.size() > 0) 
+    if (prev_pts.size() > 0)
     {
         TicToc t_o;
         vector<uchar> status;
@@ -148,7 +148,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
             cv::calcOpticalFlowPyrLK(prev_img, cur_img, prev_pts, cur_pts, status, err, cv::Size(21, 21), 1,
             cv::TermCriteria(cv::TermCriteria::COUNT+cv::TermCriteria::EPS, 30, 0.01), cv::OPTFLOW_USE_INITIAL_FLOW);//迭代算法的终止条件
                 
-            int succ_num = 0;//成功和上一阵匹配的数目
+            int succ_num = 0;//成功和上一帧匹配的数目
             for (size_t i = 0; i < status.size(); i++)
             {
                 if (status[i])
@@ -163,7 +163,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
         
         
         // reverse check 方向检查
-        if(FLOW_BACK)//
+        if(FLOW_BACK)
         {
             vector<uchar> reverse_status;
             vector<cv::Point2f> reverse_pts = prev_pts;

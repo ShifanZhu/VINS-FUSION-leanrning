@@ -78,11 +78,12 @@ class IntegrationBase
         //ROS_INFO("midpoint integration");
         
         // 更新预积分的值
-        Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba);
-        Vector3d un_gyr = 0.5 * (_gyr_0 + _gyr_1) - linearized_bg;// 本次时间间隔内的角速度
+        Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba); // contains gravity
+        std::cout << "acc: " <<_acc_0.transpose() << " " << linearized_ba.transpose() << " " << delta_q.x() << " " << un_acc_0.transpose() << std::endl;
+        Vector3d un_gyr = 0.5 * (_gyr_0 + _gyr_1) - linearized_bg; // 本次时间间隔内的中值平均角速度
         result_delta_q = delta_q * Quaterniond(1, un_gyr(0) * _dt / 2, un_gyr(1) * _dt / 2, un_gyr(2) * _dt / 2);//更新四元数
         Vector3d un_acc_1 = result_delta_q * (_acc_1 - linearized_ba);
-        Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);// 本次时间间隔内的加速度
+        Vector3d un_acc = 0.5 * (un_acc_0 + un_acc_1);// 本次时间间隔内的中值平均加速度
         result_delta_p = delta_p + delta_v * _dt + 0.5 * un_acc * _dt * _dt; // 更新位置
         result_delta_v = delta_v + un_acc * _dt;//更新速度
         result_linearized_ba = linearized_ba;
@@ -105,43 +106,43 @@ class IntegrationBase
                 a_1_x(2), 0, -a_1_x(0),
                 -a_1_x(1), a_1_x(0), 0;
 
-            // 对应VIO课程中第三讲的公式44 这个就是雅克比矩阵啊！！
+            // 对应VIO课程中第三讲的公式45 F 这个就是雅克比矩阵啊！！
             MatrixXd F = MatrixXd::Zero(15, 15);
-            F.block<3, 3>(0, 0) = Matrix3d::Identity();
+            F.block<3, 3>(0, 0) = Matrix3d::Identity(); // f11
             F.block<3, 3>(0, 3) = -0.25 * delta_q.toRotationMatrix() * R_a_0_x * _dt * _dt + 
-                                  -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt * _dt;
-            F.block<3, 3>(0, 6) = MatrixXd::Identity(3,3) * _dt;
-            F.block<3, 3>(0, 9) = -0.25 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt * _dt;
-            F.block<3, 3>(0, 12) = -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * _dt * -_dt;
-            F.block<3, 3>(3, 3) = Matrix3d::Identity() - R_w_x * _dt;
-            F.block<3, 3>(3, 12) = -1.0 * MatrixXd::Identity(3,3) * _dt;
+                                  -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt * _dt; // f12
+            F.block<3, 3>(0, 6) = MatrixXd::Identity(3,3) * _dt; // f13
+            F.block<3, 3>(0, 9) = -0.25 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt * _dt; // f14
+            F.block<3, 3>(0, 12) = -0.25 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * _dt * -_dt; // f15
+            F.block<3, 3>(3, 3) = Matrix3d::Identity() - R_w_x * _dt; // f22
+            F.block<3, 3>(3, 12) = -1.0 * MatrixXd::Identity(3,3) * _dt; // f25
             F.block<3, 3>(6, 3) = -0.5 * delta_q.toRotationMatrix() * R_a_0_x * _dt + 
-                                  -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt;
-            F.block<3, 3>(6, 6) = Matrix3d::Identity();
-            F.block<3, 3>(6, 9) = -0.5 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt;
-            F.block<3, 3>(6, 12) = -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * -_dt;
-            F.block<3, 3>(9, 9) = Matrix3d::Identity();
-            F.block<3, 3>(12, 12) = Matrix3d::Identity();
+                                  -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * (Matrix3d::Identity() - R_w_x * _dt) * _dt; // f32
+            F.block<3, 3>(6, 6) = Matrix3d::Identity(); // f33
+            F.block<3, 3>(6, 9) = -0.5 * (delta_q.toRotationMatrix() + result_delta_q.toRotationMatrix()) * _dt; // f34
+            F.block<3, 3>(6, 12) = -0.5 * result_delta_q.toRotationMatrix() * R_a_1_x * _dt * -_dt; // f35
+            F.block<3, 3>(9, 9) = Matrix3d::Identity(); // f44
+            F.block<3, 3>(12, 12) = Matrix3d::Identity(); // f55
             //cout<<"A"<<endl<<A<<endl;
 
-            // 对应VIO课程中第三讲的公式45
+            // 对应VIO课程中第三讲的公式46 G
             MatrixXd V = MatrixXd::Zero(15,18);
-            V.block<3, 3>(0, 0) =  0.25 * delta_q.toRotationMatrix() * _dt * _dt;
-            V.block<3, 3>(0, 3) =  0.25 * -result_delta_q.toRotationMatrix() * R_a_1_x  * _dt * _dt * 0.5 * _dt;
-            V.block<3, 3>(0, 6) =  0.25 * result_delta_q.toRotationMatrix() * _dt * _dt;
-            V.block<3, 3>(0, 9) =  V.block<3, 3>(0, 3);
-            V.block<3, 3>(3, 3) =  0.5 * MatrixXd::Identity(3,3) * _dt;
-            V.block<3, 3>(3, 9) =  0.5 * MatrixXd::Identity(3,3) * _dt;
-            V.block<3, 3>(6, 0) =  0.5 * delta_q.toRotationMatrix() * _dt;
-            V.block<3, 3>(6, 3) =  0.5 * -result_delta_q.toRotationMatrix() * R_a_1_x  * _dt * 0.5 * _dt;
-            V.block<3, 3>(6, 6) =  0.5 * result_delta_q.toRotationMatrix() * _dt;
-            V.block<3, 3>(6, 9) =  V.block<3, 3>(6, 3);
-            V.block<3, 3>(9, 12) = MatrixXd::Identity(3,3) * _dt;
-            V.block<3, 3>(12, 15) = MatrixXd::Identity(3,3) * _dt;
+            V.block<3, 3>(0, 0) =  0.25 * delta_q.toRotationMatrix() * _dt * _dt; // g11
+            V.block<3, 3>(0, 3) =  0.25 * -result_delta_q.toRotationMatrix() * R_a_1_x  * _dt * _dt * 0.5 * _dt; // g12
+            V.block<3, 3>(0, 6) =  0.25 * result_delta_q.toRotationMatrix() * _dt * _dt; // g13
+            V.block<3, 3>(0, 9) =  V.block<3, 3>(0, 3); // g14 == g12
+            V.block<3, 3>(3, 3) =  0.5 * MatrixXd::Identity(3,3) * _dt; // g22
+            V.block<3, 3>(3, 9) =  0.5 * MatrixXd::Identity(3,3) * _dt; // g24
+            V.block<3, 3>(6, 0) =  0.5 * delta_q.toRotationMatrix() * _dt; // g31
+            V.block<3, 3>(6, 3) =  0.5 * -result_delta_q.toRotationMatrix() * R_a_1_x  * _dt * 0.5 * _dt; // g32
+            V.block<3, 3>(6, 6) =  0.5 * result_delta_q.toRotationMatrix() * _dt; // g33
+            V.block<3, 3>(6, 9) =  V.block<3, 3>(6, 3); // g34 == g32
+            V.block<3, 3>(9, 12) = MatrixXd::Identity(3,3) * _dt; // g44
+            V.block<3, 3>(12, 15) = MatrixXd::Identity(3,3) * _dt; // g55
 
             // 对雅克比矩阵和方差矩阵进行更新
             //step_jacobian = F;
-            //step_V = V;
+            //step_V = 4V;
             jacobian = F * jacobian;//这个可以对应崔老师写的"【泡泡读者来稿】VINS 论文推导及代码解析（一）"
             covariance = F * covariance * F.transpose() + V * noise * V.transpose();//对应VIO课程中第三讲的公式35
         }
@@ -156,11 +157,11 @@ class IntegrationBase
         dt = _dt;
         acc_1 = _acc_1;
         gyr_1 = _gyr_1;
-        Vector3d result_delta_p; //位移
-        Quaterniond result_delta_q;
-        Vector3d result_delta_v;
-        Vector3d result_linearized_ba;//bias
-        Vector3d result_linearized_bg;
+        Vector3d result_delta_p; // 位移
+        Quaterniond result_delta_q; // 姿态
+        Vector3d result_delta_v; // 速度
+        Vector3d result_linearized_ba; // bias acc
+        Vector3d result_linearized_bg; // bias gyro
 
         midPointIntegration(_dt, acc_0, gyr_0, _acc_1, _gyr_1, delta_p, delta_q, delta_v,
                             linearized_ba, linearized_bg,
@@ -201,10 +202,12 @@ class IntegrationBase
         Eigen::Vector3d dba = Bai - linearized_ba;
         Eigen::Vector3d dbg = Bgi - linearized_bg;
 
+        // correction when bias change (first order approximation)
         Eigen::Quaterniond corrected_delta_q = delta_q * Utility::deltaQ(dq_dbg * dbg);
         Eigen::Vector3d corrected_delta_v = delta_v + dv_dba * dba + dv_dbg * dbg;
         Eigen::Vector3d corrected_delta_p = delta_p + dp_dba * dba + dp_dbg * dbg;
 
+        // Page 69
         residuals.block<3, 1>(O_P, 0) = Qi.inverse() * (0.5 * G * sum_dt * sum_dt + Pj - Pi - Vi * sum_dt) - corrected_delta_p;
         residuals.block<3, 1>(O_R, 0) = 2 * (corrected_delta_q.inverse() * (Qi.inverse() * Qj)).vec();
         residuals.block<3, 1>(O_V, 0) = Qi.inverse() * (G * sum_dt + Vj - Vi) - corrected_delta_v;

@@ -5,15 +5,15 @@
 imu: 1
 num_of_cam: 1
 
-imu_topic: "/imu_data"
-image0_topic: "/camera/image_raw"
+imu_topic: "/imu_topic"
+image0_topic: "/recording/image"
 # image1_topic: "/recording/image"
-output_path: "/home/zh/data/rell_dataset/outdoor/3"
+output_path: "/home/zh/data/eagle/indoor/mocap_env1_trot/pose"
 
-cam0_calib: "realsense_rgb.yaml"
+cam0_calib: "davis346_rgb.yaml"
 # cam1_calib: "cam1_mei.yaml"
-image_width: 640
-image_height: 480
+image_width: 346
+image_height: 260
    
 
 # Extrinsic parameter between IMU and Camera.
@@ -24,11 +24,10 @@ body_T_cam0: !!opencv-matrix
    rows: 4
    cols: 4
    dt: d
-   data: [0.000985307, 0.0019242, 0.999998, 0.00166182,
-         0.999993, -0.00359855, -0.000978378, 0.0255201,
-         0.00359666, 0.999992, -0.00192773, -0.0207922,
-         0, 0, 0, 1]
-
+   data: [0.01175105432, -0.0515551407, 0.9986010115, -0.01902533881,
+          0.9999171615, -0.004639446489,  -0.01200606454, 0.07454017648,
+          0.005251930304, 0.9986593729, 0.05149635156, 0.03981406645,
+          0, 0, 0, 1]
 
 
 #Multiple thread support
@@ -55,8 +54,8 @@ gyr_w: 2.6068719029534757e-06       # gyroscope bias random work noise standard 
 g_norm: 9.85007     # gravity magnitude
 
 #unsynchronization parameters
-estimate_td: 0                      # online estimate time offset between camera and imu
-td: 0.004                             # initial value of time offset. unit: s. readed image clock + td = real image clock (IMU clock)
+estimate_td: 1                      # online estimate time offset between camera and imu
+td: 0.0035                             # initial value of time offset. unit: s. readed image clock + td = real image clock (IMU clock)
 
 #loop closure parameters
 load_previous_pose_graph: 0        # load and reuse previous pose graph; load from 'pose_graph_save_path'

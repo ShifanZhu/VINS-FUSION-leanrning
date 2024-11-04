@@ -9,6 +9,7 @@
 
 #include "utility.h"
 
+// 参考 https://blog.csdn.net/hltt3838/article/details/109514591
 //从输入的加速度和重力加速度得到一个初始位姿
 Eigen::Matrix3d Utility::g2R(const Eigen::Vector3d &g)
 {
@@ -17,11 +18,13 @@ Eigen::Matrix3d Utility::g2R(const Eigen::Vector3d &g)
     Eigen::Vector3d ng2{0, 0, 1.0};//这个是理想的重力加速度
 
     // 返回一个四元数，它表示两个任意向量ng1和ng2之间的旋转
+    // 此处的R0只是把Z轴对齐了
     R0 = Eigen::Quaterniond::FromTwoVectors(ng1, ng2).toRotationMatrix();
 
     //这里是对yaw取反之后乘在原来的R0，让yaw=0的一个措施
     //TODO:如果加入磁力计的话就在这里
     double yaw = Utility::R2ypr(R0).x();
+    // 把yaw提取出来，减掉，所以现在R0的yaw是0
     R0 = Utility::ypr2R(Eigen::Vector3d{-yaw, 0, 0}) * R0;
     // R0 = Utility::ypr2R(Eigen::Vector3d{-90, 0, 0}) * R0;
     return R0;
