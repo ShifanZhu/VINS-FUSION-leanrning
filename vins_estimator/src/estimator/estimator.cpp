@@ -391,6 +391,7 @@ void Estimator::initFirstIMUPose(vector<pair<double, Eigen::Vector3d>> &accVecto
     printf("averge acc %f %f %f\n", averAcc.x(), averAcc.y(), averAcc.z());
 
     Matrix3d R0 = Utility::g2R(averAcc); //从输入的加速度和重力加速度得到一个初始位姿
+    // Why do this agian?
     double yaw = Utility::R2ypr(R0).x();
     R0 = Utility::ypr2R(Eigen::Vector3d{-yaw, 0, 0}) * R0;//另初始的航向为0
     Rs[0] = R0;
@@ -466,7 +467,7 @@ void Estimator::processImage (const map<int, vector<pair<int, Eigen::Matrix<doub
     // 检测关键帧
     if (f_manager.addFeatureCheckParallax(frame_count, image, td))
     {
-        marginalization_flag = MARGIN_OLD;//新一阵将被作为关键帧!
+        marginalization_flag = MARGIN_OLD;//新一阵将被作为关键帧! margin oldest frame
         //printf("keyframe\n");
     }
     else

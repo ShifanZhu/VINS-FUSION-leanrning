@@ -75,8 +75,8 @@ class IntegrationBase
                             Eigen::Vector3d &result_delta_p, Eigen::Quaterniond &result_delta_q, Eigen::Vector3d &result_delta_v,
                             Eigen::Vector3d &result_linearized_ba, Eigen::Vector3d &result_linearized_bg, bool update_jacobian)
     {
-        //ROS_INFO("midpoint integration");
         
+        //ROS_INFO("midpoint integration");
         // 更新预积分的值
         Vector3d un_acc_0 = delta_q * (_acc_0 - linearized_ba); // contains gravity
         std::cout << "acc: " <<_acc_0.transpose() << " " << linearized_ba.transpose() << " " << delta_q.x() << " " << un_acc_0.transpose() << std::endl;
