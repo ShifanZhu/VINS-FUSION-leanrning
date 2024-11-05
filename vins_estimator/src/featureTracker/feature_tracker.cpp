@@ -133,6 +133,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
             clahe->apply(rightImg, rightImg);
     }
     */
+    // cv::equalizeHist(cur_img, cur_img);
     cur_pts.clear();
 
     // --------------如果上一帧有特征点，就直接进行LK追踪
@@ -228,6 +229,10 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
             useHarrisDetector：指示是否使用Harris角点检测，如不指定，则计算shi-tomasi角点
             harrisK：Harris角点检测需要的k值 */
             cv::goodFeaturesToTrack(cur_img, n_pts, MAX_CNT - cur_pts.size(), 0.01, MIN_DIST, mask);
+            // std::vector<cv::KeyPoint> keypoints;
+            // cv::FAST(cur_img, keypoints, 20, true);
+            // for (auto &kp : keypoints)
+            //     n_pts.push_back(kp.pt);
             // mask 这里肯定是指定感兴趣区，如不需在整幅图上寻找角点，则用此参数指定ROI
         }
         else

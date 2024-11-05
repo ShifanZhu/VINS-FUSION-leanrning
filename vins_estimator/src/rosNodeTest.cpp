@@ -53,7 +53,7 @@ void img1_callback(const sensor_msgs::ImageConstPtr &img_msg)
 cv::Mat getImageFromMsg(const sensor_msgs::ImageConstPtr &img_msg)
 {
     cv_bridge::CvImageConstPtr ptr;//cv_bridge 用于ROS图像和OPenCV图像的转换
-    if (img_msg->encoding == "8UC1")
+    if (img_msg->encoding == "8UC1" || img_msg->encoding == "mono8")
     {
         sensor_msgs::Image img;
         img.header = img_msg->header;
