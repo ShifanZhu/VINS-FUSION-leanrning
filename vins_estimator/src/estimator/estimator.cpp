@@ -309,7 +309,7 @@ void Estimator::processMeasurements()
             curTime = feature.first + td;//td是图像和IMU的time offset，在图像的时间上加上这个值
             while(1)
             {
-                if ((!USE_IMU  || IMUAvailable(feature.first + td)))//如果不用imu或者
+                if ((!USE_IMU  || IMUAvailable(feature.first + td)))//如果不用imu或者最新imu时刻小于当前时间
                     break;
                 else
                 {

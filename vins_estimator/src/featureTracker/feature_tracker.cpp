@@ -229,6 +229,7 @@ map<int, vector<pair<int, Eigen::Matrix<double, 7, 1>>>> FeatureTracker::trackIm
             useHarrisDetector：指示是否使用Harris角点检测，如不指定，则计算shi-tomasi角点
             harrisK：Harris角点检测需要的k值 */
             cv::goodFeaturesToTrack(cur_img, n_pts, MAX_CNT - cur_pts.size(), 0.01, MIN_DIST, mask);
+            LOG(INFO) << "newly detected feature points: " << n_pts.size();
             // std::vector<cv::KeyPoint> keypoints;
             // cv::FAST(cur_img, keypoints, 20, true);
             // for (auto &kp : keypoints)
